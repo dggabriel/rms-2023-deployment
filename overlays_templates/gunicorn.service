@@ -1,0 +1,17 @@
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/home/ilcadmin/rms-django
+ExecStart=/home/ilcadmin/rms-django/rmsenv/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --bind unix:/run/gunicorn.sock \
+          rms.wsgi:application
+
+[Install]
+WantedBy=multi-user.target

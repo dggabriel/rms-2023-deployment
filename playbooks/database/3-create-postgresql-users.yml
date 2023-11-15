@@ -1,0 +1,30 @@
+---
+- hosts: database
+  become: true
+  tasks:
+
+  - name: drop user if exists
+    shell: 'psql postgres -c "DROP USER IF EXISTS rmsuser"'
+    become_user: postgres
+    ignore_errors: yes
+
+  - name: create user rmsuser
+    shell: 'psql postgres -c "CREATE USER rmsuser"'
+    become_user: postgres
+    ignore_errors: yes
+ 
+  - name: create database ilcdrms
+    shell: 'psql postgres -c "CREATE DATABASE ilcdrms"'
+    become_user: postgres
+    ignore_errors: yes
+
+  - name: restore ilcdrms
+    shell: 'psql -U postgres -d ilcdrms < /home/ilcadmin/database/database/ilcdrms_final.sql'
+    become_user: postgres
+    ignore_errors: yes
+
+  - name: grant user user access to ilcdrms db
+    shell: 'psql postgres -c "GRANT ALL PRIVILEGES ON DATABASE ilcdrms to rmsuser"'
+    become_user: postgres
+    ignore_errors: yes
+#manually set the password after

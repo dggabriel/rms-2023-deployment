@@ -1,0 +1,22 @@
+---
+- hosts: database
+  become: true
+  tasks:
+
+  - name: Ensure PostgreSQL is listening on *
+    lineinfile:
+     dest: /etc/postgresql/13/main/postgresql.conf
+     regexp: '^#listen_addresses\s*='
+     line: "listen_addresses='*'"
+     state: present
+
+  - name: Add new configuration to "pg_hba.conf"
+    blockinfile:
+     dest: /etc/postgresql/13/main/pg_hba.conf
+     block: |
+      host    all             all             0.0.0.0/0                md5
+
+  - name: Restart postgresql
+    service:
+      name: postgresql
+      state: restarted

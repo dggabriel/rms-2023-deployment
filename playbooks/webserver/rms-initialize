@@ -1,0 +1,92 @@
+---
+- hosts: webserver
+  become: true
+  become_user: root
+  tasks:
+
+  - name: Install required dependencies
+    apt:
+      update_cache: yes
+      name:
+        - git 
+        - nginx   
+        - python3 
+        - python3-pip 
+        - python3-venv 
+        - python3-dev   
+        - libpq-dev 
+      state: present
+    become: yes
+  
+  - name: create project directory
+    shell: |
+      rm -rf /home/ilcadmin/rms-django
+      mkdir /home/ilcadmin/rms-django
+
+  - name: Clone code from Git
+    git:
+     repo: git@github.com:dggabriel/rms-django.git
+     version: master
+     dest: /home/ilcadmin/rms-django
+     accept_hostkey: yes
+     update: yes
+     force: yes
+
+  - name: django virtual environment
+    shell: |
+      cd /home/ilcadmin/rms-2023
+      #python3 -m venv rmsenv
+      source rmsenv/bin/activate
+      pip install django gunicorn psycopg2-binary
+  
+  - name: Copy settings.py
+    template:
+      src: ../../overlays_templates/settings.py
+      dest: /home/ilcadmin/rms-django/rms/settings.py
+
+  - name: Copy gunicorn.socket
+    template:
+      src: ../../overlays_templates/gunicorn.socket
+      dest: /etc/systemd/system/gunicorn.socket
+
+  - name: Copy gunicorn.service
+    template:
+      src: ../../overlays_templates/gunicorn.service
+      dest: /etc/systemd/system/gunicorn.service
+
+  #- name: Remove existing rms-django.conf
+    #command: rm /etc/nginx/sites-available/rms-django.conf /etc/nginx/sites-enabled/rms-django.conf
+
+  - name: Copy nginx config
+    template:
+      src: ../../overlays_templates/rms-django.conf
+      dest: /etc/nginx/sites-available/rms-django.conf
+
+  - name: Create rms-django symlink
+    command: ln -s /etc/nginx/sites-available/rms-django.conf /etc/nginx/sites-enabled
+
+  - name: Enable nginx, gunicorn socket and service
+    command: systemctl enable nginx.service gunicorn.socket gunicorn.service
+
+  - name: Start gunicorn socket
+    service:
+      name: gunicorn.socket
+      state: started
+
+  - name: Daemon reload
+    command: systemctl daemon-reload
+
+  - name: Start gunicorn socket
+    service:
+      name: gunicorn.service
+      state: started
+  
+  - name: Restart gunicorn service
+    service:
+      name: gunicorn.service
+      state: restarted
+
+  - name: Restart nginx
+    service:
+      name: nginx
+      state: restarted
